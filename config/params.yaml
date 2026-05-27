@@ -1,0 +1,59 @@
+# ===========================================================================
+# Central experiment configuration. FULLY BUILT.
+#
+# Every tunable lives here, never hardcoded mid-function. This is what makes an
+# experiment reproducible: the config IS the experiment. Change a number here,
+# re-run, and the eval history tells you whether it helped.
+# ===========================================================================
+
+seed: 42
+
+# --- The prediction target -------------------------------------------------
+# We frame "underperformance" operationally on what Olist actually supports.
+# See docs/problem-framing.md for the full reasoning. Start with the binary
+# classification target; the regression target is a stretch.
+target:
+  task: classification          # classification | regression | ranking
+  name: is_underperforming
+  # A product is "underperforming" if its revenue is in the bottom quantile
+  # WITHIN its category (so we compare like with like, not electronics vs pens).
+  underperformance_quantile: 0.25
+  min_orders_for_label: 5       # exclude ultra-cold products from the label
+
+# --- Temporal split (leakage-safe; NEVER random-split time series) ---------
+split:
+  strategy: temporal
+  time_column: order_purchase_timestamp
+  train_end: "2018-03-31"
+  valid_end: "2018-06-30"
+  # everything after valid_end is the test set
+
+# --- Feature engineering ---------------------------------------------------
+features:
+  target_encoding_smoothing: 20.0   # Bayesian smoothing for category encoders
+  rolling_windows_days: [7, 30, 90]
+
+# --- Model -----------------------------------------------------------------
+model:
+  type: lightgbm                # baseline | lightgbm | xgboost
+  handle_imbalance: scale_pos_weight   # none | scale_pos_weight | class_weight
+  calibrate: true               # fit a calibration layer on the validation set
+
+tuning:
+  enabled: false
+  n_trials: 50
+  timeout_seconds: 600
+  metric: pr_auc                # optimize PR-AUC (better than AUC under imbalance)
+
+# --- Evaluation ------------------------------------------------------------
+evaluation:
+  primary_metric: pr_auc
+  report_metrics: [roc_auc, pr_auc, brier, ece, recall_at_k]
+  recall_k_fraction: 0.10       # recall among the top 10% flagged
+
+# --- Experimentation defaults ----------------------------------------------
+experiment:
+  alpha: 0.05
+  power: 0.80
+  baseline_conversion: 0.030    # example baseline rate for power calcs
+  min_detectable_effect_rel: 0.05   # detect a 5% relative lift

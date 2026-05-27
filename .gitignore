@@ -1,0 +1,49 @@
+# --- Secrets & local overrides ---
+.env
+.env.local
+*.local.md
+.claude/settings.local.json
+.claude/CLAUDE.local.md
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+env/
+
+# --- Testing / linting caches ---
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# --- Data (large; downloaded, not committed) ---
+data/raw/*
+!data/raw/.gitkeep
+data/interim/*
+!data/interim/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+
+# --- Model & experiment artifacts ---
+models/
+artifacts/
+mlruns/
+*.joblib
+*.pkl
+optuna_studies/
+
+# --- Notebooks ---
+.ipynb_checkpoints/
+
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json

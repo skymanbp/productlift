@@ -1,0 +1,20 @@
+# ProductLift local stack. The scoring API, containerized the way you'd ship it.
+# (Training is a batch job, not a service, so it isn't in compose — you run it
+#  with `make train`. This separation, training offline vs serving online, is
+#  itself an important production concept.)
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: app/Dockerfile
+    ports:
+      - "8000:8000"
+    env_file: .env
+    volumes:
+      - ./models:/app/models:ro   # mount the trained model read-only
+    healthcheck:
+      test: ["CMD", "python", "-m", "scripts.healthcheck"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

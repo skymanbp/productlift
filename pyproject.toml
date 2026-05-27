@@ -1,0 +1,79 @@
+[project]
+name = "productlift"
+version = "0.1.0"
+description = "ProductLift — an applied-ML project that identifies and improves underperforming e-commerce products. A teaching repo for ML engineering, statistics, feature engineering, experimentation, and causal inference, built on the real Olist Brazilian e-commerce dataset."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Optwise Consulting" }]
+
+dependencies = [
+    # --- Core data / numerics ---
+    "pandas>=2.2",
+    "numpy>=1.26",
+    "pyarrow>=15.0",          # fast parquet for the analytic base table
+    "scipy>=1.12",
+    # --- Modeling ---
+    "scikit-learn>=1.4",
+    "lightgbm>=4.3",
+    "xgboost>=2.0",
+    "optuna>=3.6",            # hyperparameter tuning
+    # --- Statistics / experimentation ---
+    "statsmodels>=0.14",      # power analysis, GLMs, proportion tests
+    # --- Interpretability ---
+    "shap>=0.45",
+    # --- Serving ---
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.29",
+    "pydantic>=2.6",
+    "pydantic-settings>=2.2",
+    "joblib>=1.4",            # model persistence
+    # --- Config / utils ---
+    "pyyaml>=6.0",
+    "structlog>=24.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "ruff>=0.4",
+    "mypy>=1.10",
+    # --- EDA / notebooks ---
+    "jupyterlab>=4.1",
+    "matplotlib>=3.8",
+    "seaborn>=0.13",
+    "ipykernel>=6.29",
+]
+
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["app*", "evaluation*", "experimentation*", "causal*", "observability*"]
+
+# ---------------------------------------------------------------------------
+# Tooling — part of the "production skills" curriculum.
+# ---------------------------------------------------------------------------
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "C4", "PD"]  # PD = pandas-vet
+ignore = ["E501", "PD901"]  # allow `df` as a name
+
+[tool.mypy]
+python_version = "3.11"
+warn_unused_configs = true
+ignore_missing_imports = true   # ML libs ship incomplete stubs; relax for now
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --strict-markers"
+markers = [
+    "exercise: fails until the corresponding exercise is implemented",
+    "slow: trains a model or runs many iterations",
+    "data: requires the downloaded Olist dataset (skipped in CI by default)",
+]
