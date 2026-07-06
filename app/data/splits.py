@@ -35,18 +35,28 @@ class Split:
     test: pd.DataFrame
 
 
-def temporal_split(
-    df: pd.DataFrame, time_col: str, train_end: str, valid_end: str
-) -> Split:
+def temporal_split(df: pd.DataFrame, time_col: str, train_end: str, valid_end: str) -> Split:
     """Split rows by `time_col`: train ≤ train_end < valid ≤ valid_end < test.
 
-    TODO(lillian):
-      - parse train_end / valid_end to timestamps (pd.Timestamp)
-      - train  = rows with time_col <= train_end
-      - valid  = rows with train_end < time_col <= valid_end
-      - test   = rows with time_col >  valid_end
-      - return Split(train, valid, test) with index reset
-    The test asserts the windows don't overlap and that max(train.time) <
-    min(valid.time) — i.e. no temporal leakage across the boundary.
+    Boundary rows go to the EARLIER window (train gets `train_end` itself) so a
+    row can never appear on both sides — the no-leakage guarantee the tests
+    assert. The three masks are mutually exclusive and exhaustive, which is only
+    true if `time_col` has no NaT (NaT compares False everywhere and would be
+    silently dropped from all three windows), so we fail loud on that.
     """
-    raise NotImplementedError("Implement temporal_split — see tests/test_splits.py")
+    t1 = pd.Timestamp(train_end)
+    t2 = pd.Timestamp(valid_end)
+    if not t1 < t2:
+        raise ValueError(f"train_end ({t1}) must be strictly before valid_end ({t2})")
+
+    t = df[time_col]
+    if t.isna().any():
+        raise ValueError(
+            f"{time_col} contains {int(t.isna().sum())} NaT rows; they would be "
+            "silently dropped from every window — clean them upstream first"
+        )
+
+    train = df[t <= t1].reset_index(drop=True)
+    valid = df[(t > t1) & (t <= t2)].reset_index(drop=True)
+    test = df[t > t2].reset_index(drop=True)
+    return Split(train=train, valid=valid, test=test)
