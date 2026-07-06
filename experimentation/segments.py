@@ -25,6 +25,9 @@ TEST
 from __future__ import annotations
 
 import pandas as pd
+from statsmodels.stats.multitest import multipletests
+
+from experimentation.analyze import two_proportion_test
 
 
 def segment_effects(
@@ -34,13 +37,43 @@ def segment_effects(
     with raw and multiplicity-corrected significance.
 
     `df` has one row per unit with a segment, a group (control/treatment), and a
-    binary outcome.
-
-    TODO(lillian):
-      - for each segment level: run two_proportion_test (reuse analyze.py) on
-        control vs treatment within that segment → effect + p-value
-      - collect p-values; apply Benjamini-Hochberg (or Bonferroni) across segments
-      - return a DataFrame: [segment, n, lift, p_value, p_adjusted, significant_adj]
-    The test checks that adding more segments makes the correction stricter.
+    binary outcome. Correction is Benjamini-Hochberg (controls the false discovery
+    rate): with many exploratory segments, FDR "of the winners we call, few are
+    flukes" matches how segment scans are used better than Bonferroni's "no false
+    positive anywhere", which sacrifices most of the power. A segment missing one
+    of the two arms is an experiment-design bug, not a statistics question — it
+    raises rather than being silently skipped.
     """
-    raise NotImplementedError("Implement segment_effects — see tests/test_segments.py")
+    required = {segment_col, group_col, outcome_col}
+    missing = required - set(df.columns)
+    if missing:
+        raise ValueError(f"df is missing columns: {sorted(missing)}")
+    groups = set(df[group_col].unique())
+    if groups != {"control", "treatment"}:
+        raise ValueError(
+            f"{group_col} must contain exactly control/treatment, got {sorted(groups)}"
+        )
+
+    rows = []
+    for level, sub in df.groupby(segment_col):
+        control = sub.loc[sub[group_col] == "control", outcome_col]
+        treatment = sub.loc[sub[group_col] == "treatment", outcome_col]
+        if len(control) == 0 or len(treatment) == 0:
+            raise ValueError(f"segment {level!r} lacks one of the arms — check the assignment")
+        res = two_proportion_test(
+            int(control.sum()), len(control), int(treatment.sum()), len(treatment), alpha=alpha
+        )
+        rows.append(
+            {
+                "segment": level,
+                "n": len(sub),
+                "lift": res.relative_lift,
+                "p_value": res.p_value,
+            }
+        )
+
+    out = pd.DataFrame(rows)
+    rejected, p_adjusted, _, _ = multipletests(out["p_value"], alpha=alpha, method="fdr_bh")
+    out["p_adjusted"] = p_adjusted
+    out["significant_adj"] = rejected
+    return out

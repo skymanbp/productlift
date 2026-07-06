@@ -26,7 +26,10 @@ TEST
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
+
+from scipy.stats import norm
 
 
 @dataclass
@@ -43,22 +46,37 @@ def required_sample_size(
 ) -> DesignResult:
     """Return the required sample size PER ARM to detect a relative lift `mde_relative`.
 
-    TODO(lillian): implement the formula in KEY CONCEPT.
-      - p1 = baseline_rate; p2 = p1 * (1 + mde_relative)
-      - z_alpha = norm.ppf(1 - alpha/2); z_beta = norm.ppf(power)   (scipy.stats.norm)
-      - n = ceil( (z_alpha + z_beta)^2 * (p1*(1-p1) + p2*(1-p2)) / (p2-p1)^2 )
-      - return DesignResult(n_per_arm=n, ...).
-    Cross-check your number against statsmodels
-    (NormalIndPower / proportion_effectsize) in the test.
+    Normal-approximation two-proportion formula (KEY CONCEPT above). Defaults for
+    alpha/power mirror config/params.yaml `experiment`. The four quantities trade
+    off against each other: halving the MDE roughly quadruples n (it enters
+    squared in the denominator) — that is why "detect any effect at all" is not a
+    designable experiment.
     """
-    raise NotImplementedError("Implement required_sample_size — see tests/test_power.py")
+    if not 0.0 < baseline_rate < 1.0:
+        raise ValueError(f"baseline_rate must be in (0, 1), got {baseline_rate}")
+    if mde_relative == 0.0:
+        raise ValueError("mde_relative = 0 means no effect to detect — n would be infinite")
+    p1 = baseline_rate
+    p2 = p1 * (1.0 + mde_relative)
+    if not 0.0 < p2 < 1.0:
+        raise ValueError(f"treatment rate p1*(1+mde) = {p2} outside (0, 1)")
+
+    z_alpha = norm.ppf(1.0 - alpha / 2.0)
+    z_beta = norm.ppf(power)
+    n = math.ceil((z_alpha + z_beta) ** 2 * (p1 * (1 - p1) + p2 * (1 - p2)) / (p2 - p1) ** 2)
+    return DesignResult(
+        n_per_arm=int(n), baseline_rate=p1, treatment_rate=p2, alpha=alpha, power=power
+    )
 
 
 def days_to_run(n_per_arm: int, daily_traffic_per_arm: int) -> int:
-    """Translate required sample size into experiment duration in days.
+    """Days needed to collect n_per_arm, but never fewer than 7.
 
-    TODO(lillian): ceil(n_per_arm / daily_traffic_per_arm), but return at least 7 so
-    you always cover a full weekly cycle. State that rule in the docstring of your
-    impl — it's a judgment call interviewers want to hear you make.
+    The floor is a design judgment, not math: an experiment that ends mid-week
+    confounds the effect with day-of-week patterns, and anything shorter is also
+    dominated by novelty effects. Even with traffic to finish in an hour, run the
+    full weekly cycle.
     """
-    raise NotImplementedError
+    if daily_traffic_per_arm <= 0:
+        raise ValueError(f"daily_traffic_per_arm must be positive, got {daily_traffic_per_arm}")
+    return max(7, math.ceil(n_per_arm / daily_traffic_per_arm))
