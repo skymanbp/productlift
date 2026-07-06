@@ -34,20 +34,36 @@ def split_windows(
     return feature_events, outcome_events
 
 
-def assemble(base: pd.DataFrame, as_of: pd.Timestamp, horizon_days: int, **label_kwargs) -> pd.DataFrame:
+def assemble(
+    base: pd.DataFrame, as_of: pd.Timestamp, horizon_days: int, **label_kwargs
+) -> pd.DataFrame:
     """Return the product-level modeling matrix: features + is_underperforming.
 
-    TODO(lillian) — once the builders are implemented, wire them up:
-      1. feature_events, outcome_events = split_windows(base, as_of, horizon_days)
-      2. feats = product_features(feature_events)
-              .merge(behavioral_features(feature_events), on="product_id")
-              .merge(temporal_features(feature_events, as_of), on="product_id")
-      3. labels = label_underperforming(outcome_events, **label_kwargs)
-      4. join feats to labels on product_id. Decide the join type and document why
-         (a product with features but no outcome-window orders has no label — drop
-         it, or is that itself the signal? this is a real modeling decision to make
-         and defend).
-    The test builds a tiny base table and checks no outcome-window column leaks into
-    the feature columns.
+    Two decisions here ARE the leakage discipline:
+
+    - Only `is_underperforming` crosses the label join. The label frame also carries
+      revenue/n_orders/category measured in the OUTCOME window; as features those
+      would encode the target itself (and n_orders would shadow the feature-window
+      behavioral column of the same name).
+    - Inner join: a product enters the matrix only with BOTH a feature-window history
+      and a judgeable outcome-window label. A product with no label was excluded by
+      labels.py as unjudgeable (< min_orders) — that is not evidence of health, so we
+      drop it rather than label it 0. The defensible alternative (treat vanishing
+      from the outcome window as underperformance itself) is a different target
+      definition and belongs in labels.py, not in a join default.
     """
-    raise NotImplementedError("Implement assemble — see tests/test_build.py")
+    feature_events, outcome_events = split_windows(base, as_of, horizon_days)
+
+    feats = (
+        product_features(feature_events)
+        .merge(behavioral_features(feature_events), on="product_id", validate="one_to_one")
+        .merge(temporal_features(feature_events, as_of), on="product_id", validate="one_to_one")
+    )
+    labels = label_underperforming(outcome_events, **label_kwargs)
+
+    return feats.merge(
+        labels[["product_id", "is_underperforming"]],
+        on="product_id",
+        how="inner",
+        validate="one_to_one",
+    )

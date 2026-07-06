@@ -33,13 +33,36 @@ import pandas as pd
 def behavioral_features(feature_events: pd.DataFrame) -> pd.DataFrame:
     """Return one row per product of historical behavioral aggregates.
 
-    TODO(lillian): group feature_events by product_id and compute at least:
-      - n_orders (count), n_unique_customers (nunique on customer_id)
-      - avg_price, avg_freight
-      - avg_review_score, bad_review_rate (share of review_score <= 2)
-      - late_delivery_rate, avg_delivery_days
-    Handle products with no reviews (review_score all NaN) without crashing —
-    decide on a sensible fill and document it. The test checks the bad_review_rate
-    and the NaN handling.
+    All aggregates use only the feature window the caller passes in. Rates are
+    computed among the orders that carry the signal: `bad_review_rate` is the share
+    of REVIEWED orders scoring <= 2 (counting unreviewed orders as "not bad" would
+    bias every sparse product toward looking healthy). Products with no reviews get
+    NaN for both review aggregates — deliberately not filled here: missingness is
+    itself signal, and any imputation must be fit on train only, which is the model
+    pipeline's job (M3), not the feature builder's.
     """
-    raise NotImplementedError("Implement behavioral_features — see tests/test_features.py")
+    required = {
+        "product_id",
+        "order_id",
+        "customer_id",
+        "price",
+        "freight_value",
+        "review_score",
+        "late_delivery",
+        "delivery_days",
+    }
+    missing = required - set(feature_events.columns)
+    if missing:
+        raise ValueError(f"feature_events is missing columns: {sorted(missing)}")
+
+    return feature_events.groupby("product_id", as_index=False).agg(
+        n_orders=("order_id", "size"),
+        n_unique_customers=("customer_id", "nunique"),
+        avg_price=("price", "mean"),
+        avg_freight=("freight_value", "mean"),
+        avg_review_score=("review_score", "mean"),
+        # mean() of an empty (all-NaN-dropped) slice is NaN, not an error.
+        bad_review_rate=("review_score", lambda s: s.dropna().le(2).mean()),
+        late_delivery_rate=("late_delivery", "mean"),
+        avg_delivery_days=("delivery_days", "mean"),
+    )
