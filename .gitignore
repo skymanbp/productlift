@@ -31,7 +31,8 @@ data/processed/*
 !data/processed/.gitkeep
 
 # --- Model & experiment artifacts ---
-models/
+# Anchored to repo root: unanchored `models/` also swallows app/models/ SOURCE CODE.
+/models/
 artifacts/
 mlruns/
 *.joblib

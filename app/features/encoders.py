@@ -73,3 +73,9 @@ class SmoothedTargetEncoder(BaseEstimator, TransformerMixin):
             raise ValueError("SmoothedTargetEncoder.transform called before fit")
         encoded = X[self.column].map(self.mapping_).fillna(self.global_mean_)
         return encoded.to_numpy(dtype=float).reshape(-1, 1)
+
+    def get_feature_names_out(self, input_features: object = None) -> np.ndarray:
+        """Name the single output column so feature names propagate through a
+        ColumnTransformer with set_output(transform="pandas") and downstream
+        estimators see the same names at fit and predict time."""
+        return np.asarray([f"{self.column}_target_encoded"], dtype=object)

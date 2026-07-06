@@ -37,7 +37,16 @@ features:
 model:
   type: lightgbm                # baseline | lightgbm | xgboost
   handle_imbalance: scale_pos_weight   # none | scale_pos_weight | class_weight
-  calibrate: true               # fit a calibration layer on the validation set
+  calibrate: true               # fit a calibration layer on a held-out calib fold
+  holdout:                      # seeded product-level split; remainder is train
+    test_fraction: 0.20         # touched exactly once, at the very end
+    valid_fraction: 0.15        # early stopping + model comparison
+    calib_fraction: 0.15        # calibration fold the GBDT never saw
+  gbdt:
+    n_estimators: 1000          # ceiling; early stopping picks the real count
+    learning_rate: 0.05
+    num_leaves: 15              # small-data setting (hundreds of rows)
+    early_stopping_rounds: 100
 
 tuning:
   enabled: false
