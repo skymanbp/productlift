@@ -41,43 +41,70 @@ def rmse(y_true: np.ndarray, y_pred: np.ndarray) -> float:
 def brier_score(y_true: np.ndarray, y_prob: np.ndarray) -> float:
     """Mean squared error of probabilistic predictions: mean((y_prob - y_true)^2).
 
-    TODO(lillian): one line. Lower = better-calibrated AND sharper. The test checks
-    a perfect predictor (0.0) and a hand example.
+    Lower = better-calibrated AND sharper (it decomposes into calibration +
+    refinement); a constant prediction of the prevalence scores prevalence*(1-prevalence).
     """
-    raise NotImplementedError
+    return float(np.mean((np.asarray(y_prob, dtype=float) - np.asarray(y_true, dtype=float)) ** 2))
 
 
 def expected_calibration_error(y_true: np.ndarray, y_prob: np.ndarray, n_bins: int = 10) -> float:
     """ECE: bin predictions, take the weighted average gap between mean predicted
     probability and observed frequency per bin.
 
-    TODO(lillian):
-      - bin y_prob into n_bins equal-width bins on [0, 1]
-      - per non-empty bin: |mean(y_prob in bin) - mean(y_true in bin)|
-      - weight each bin's gap by its share of points; sum.
-    The test feeds a perfectly-calibrated set (ECE≈0) and a badly-calibrated one.
+    Weighting by bin population keeps a sparsely-hit bin from dominating the
+    score; empty bins contribute nothing (there is no prediction to be wrong).
     This is THE metric to show alongside AUC in a model review.
     """
-    raise NotImplementedError
+    y_true_arr = np.asarray(y_true, dtype=float)
+    y_prob_arr = np.asarray(y_prob, dtype=float)
+    edges = np.linspace(0.0, 1.0, n_bins + 1)
+    # digitize against interior edges → bin ids 0..n_bins-1, with 1.0 in the last bin
+    bin_ids = np.digitize(y_prob_arr, edges[1:-1])
+
+    n = len(y_prob_arr)
+    ece = 0.0
+    for b in range(n_bins):
+        mask = bin_ids == b
+        if mask.any():
+            gap = abs(y_prob_arr[mask].mean() - y_true_arr[mask].mean())
+            ece += (mask.sum() / n) * gap
+    return float(ece)
 
 
 def recall_at_k(y_true: np.ndarray, y_score: np.ndarray, k_fraction: float) -> float:
     """Of all true positives, what share is captured in the top `k_fraction` by score?
 
-    TODO(lillian): take the top ceil(k_fraction * n) items by score; return
-    (# true positives among them) / (total true positives). This is the operating-
-    point metric — "if we can only review the top 10% of flagged products, how many
-    real underperformers do we catch?" Translate the model into a business decision.
+    This is the operating-point metric — "if we can only review the top 10% of
+    flagged products, how many real underperformers do we catch?" It translates
+    the model into a business decision. NaN when there are no positives: recall
+    is undefined without anything to recall, and 0/1 would both lie.
     """
-    raise NotImplementedError
+    y_true_arr = np.asarray(y_true)
+    y_score_arr = np.asarray(y_score, dtype=float)
+    n_pos = int(y_true_arr.sum())
+    if n_pos == 0:
+        return float("nan")
+    k = int(np.ceil(k_fraction * len(y_true_arr)))
+    top_k = np.argsort(-y_score_arr, kind="stable")[:k]
+    return float(y_true_arr[top_k].sum() / n_pos)
 
 
 def ndcg_at_k(y_true: np.ndarray, y_score: np.ndarray, k: int) -> float:
     """Normalized Discounted Cumulative Gain — a ranking metric (the doc lists MAP/
     NDCG). Binary relevance: gain = y_true.
 
-    TODO(lillian): order by y_score desc; DCG@k = Σ_{i=1..k} rel_i / log2(i+1);
-    IDCG@k = DCG of the ideal ordering; return DCG/IDCG (0 if IDCG==0). Relevant for
-    the ranking framing of "which products to surface/fix first".
+    DCG@k = Σ_{i=1..k} rel_i / log2(i+1) over the score-descending order; IDCG@k is
+    the same sum over the ideal (relevance-descending) order; NDCG = DCG/IDCG.
+    0 when IDCG == 0 — with no relevant items every ranking is equally (un)helpful.
+    Relevant for the ranking framing of "which products to surface/fix first".
     """
-    raise NotImplementedError
+    y_true_arr = np.asarray(y_true, dtype=float)
+    y_score_arr = np.asarray(y_score, dtype=float)
+
+    order = np.argsort(-y_score_arr, kind="stable")[:k]
+    discounts = 1.0 / np.log2(np.arange(2, len(order) + 2))
+    dcg = float((y_true_arr[order] * discounts).sum())
+
+    ideal = np.sort(y_true_arr)[::-1][:k]
+    idcg = float((ideal * 1.0 / np.log2(np.arange(2, len(ideal) + 2))).sum())
+    return dcg / idcg if idcg > 0 else 0.0

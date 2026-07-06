@@ -28,6 +28,8 @@ def format_report(report: dict, baseline: dict | None = None) -> str:
         lines.append("| segment | " + " | ".join(metric_names) + " |")
         lines.append("|" + "---|" * (len(metric_names) + 1))
         for level, vals in by_seg.items():
-            cells = " | ".join(f"{vals[m]:.4f}" if vals.get(m) is not None else "—" for m in metric_names)
+            cells = " | ".join(
+                f"{vals[m]:.4f}" if vals.get(m) is not None else "—" for m in metric_names
+            )
             lines.append(f"| {level} | {cells} |")
     return "\n".join(lines)
