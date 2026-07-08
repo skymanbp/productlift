@@ -27,7 +27,6 @@ TEST
 
 from __future__ import annotations
 
-import numpy as np
 import pandas as pd
 
 
@@ -41,15 +40,43 @@ def position_adjusted_rate(
 ) -> pd.DataFrame:
     """Return a per-item position-corrected conversion rate.
 
-    `examination_by_position` maps position → P(examined); if None, assume a simple
-    decay (you choose and document it, e.g. 1/position).
+    `examination_by_position` maps position → P(examined); if None, assume the
+    classic 1/position examination decay (documented default; in practice you
+    estimate this curve from position-randomized traffic).
 
-    TODO(lillian):
-      - per row, weight = 1 / examination(position)  (clip to avoid blow-ups)
-      - per item, corrected_rate = sum(click * weight) / sum(weight)
-      - also return the naive (unweighted) rate so you can SHOW the difference
-      - return [item, naive_rate, corrected_rate, n].
-    The test puts equal-quality items at good vs bad positions and checks the
-    corrected rates converge while the naive ones don't.
+    Estimator: corrected_rate = mean(click / examination) per item — the
+    inverse-propensity-scoring estimate of P(click | examined). It is unbiased
+    because E[click] = examination × true_ctr, so dividing each observation by
+    its examination probability recovers true_ctr. NOTE: the exercise TODO
+    originally suggested sum(click·w)/sum(w), but with one fixed position per
+    item that self-normalization cancels the constant weight and degenerates to
+    the naive rate — it cannot pass the test and is not the IPS estimator.
+    Examination probabilities are floored at `min_examination` before inverting
+    (a 0.1%-examined position would otherwise carry weight 1000 and let one
+    noisy click dominate the estimate).
     """
-    raise NotImplementedError("Implement position_adjusted_rate — see tests/test_exposure_bias.py")
+    required = {item_col, position_col, click_col}
+    missing = required - set(df.columns)
+    if missing:
+        raise ValueError(f"df is missing columns: {sorted(missing)}")
+
+    min_examination = 0.01
+    if examination_by_position is None:
+        examination = 1.0 / df[position_col].astype(float)
+    else:
+        unknown = set(df[position_col].unique()) - set(examination_by_position)
+        if unknown:
+            raise ValueError(f"positions without an examination probability: {sorted(unknown)}")
+        examination = df[position_col].map(examination_by_position).astype(float)
+    if (examination <= 0).any() or (examination > 1).any():
+        raise ValueError("examination probabilities must lie in (0, 1]")
+
+    work = df[[item_col, click_col]].copy()
+    work["_ips"] = work[click_col] / examination.clip(lower=min_examination)
+
+    out = work.groupby(item_col, as_index=False).agg(
+        naive_rate=(click_col, "mean"),
+        corrected_rate=("_ips", "mean"),
+        n=(click_col, "size"),
+    )
+    return out

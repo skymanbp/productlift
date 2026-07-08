@@ -36,19 +36,36 @@ class TLearner:
         self.model_t = None
         self.model_c = None
 
-    def fit(self, X: pd.DataFrame, treatment: pd.Series, outcome: pd.Series) -> "TLearner":
+    def fit(self, X: pd.DataFrame, treatment: pd.Series, outcome: pd.Series) -> TLearner:
         """Fit one model on treated rows, one on control rows.
 
-        TODO(lillian): split X/outcome by treatment, fit self.model_t on treated and
-        self.model_c on control (each via self._make()). Return self.
+        The two arms get INDEPENDENT models from the factory — sharing one model
+        (the S-learner) shrinks small effects toward zero because treatment
+        competes with every other feature for splits/coefficients. An empty arm
+        is an experiment-design failure, not something to impute around.
         """
-        raise NotImplementedError("Implement TLearner.fit — see tests/test_uplift.py")
+        t = np.asarray(treatment).astype(bool)
+        if t.all() or not t.any():
+            raise ValueError("both treated and control rows are required to fit a T-learner")
+        self.model_t = self._make().fit(X[t], np.asarray(outcome)[t])
+        self.model_c = self._make().fit(X[~t], np.asarray(outcome)[~t])
+        return self
 
     def predict_uplift(self, X: pd.DataFrame) -> np.ndarray:
         """Return per-row CATE estimate = pred_treated(X) - pred_control(X).
 
-        TODO(lillian): use predict_proba[:,1] for classifiers (or predict for
-        regressors). The test checks that the estimated uplift is higher for the
-        subgroup with the larger true effect.
+        Classifiers contribute P(y=1) (predict_proba[:, 1]); regressors their
+        prediction — so the uplift is always on the outcome scale, never on
+        hard 0/1 labels (differencing labels would quantize the effect away).
         """
-        raise NotImplementedError
+        if self.model_t is None or self.model_c is None:
+            raise ValueError("TLearner.predict_uplift called before fit")
+        return self._positive_prediction(self.model_t, X) - self._positive_prediction(
+            self.model_c, X
+        )
+
+    @staticmethod
+    def _positive_prediction(model, X: pd.DataFrame) -> np.ndarray:
+        if hasattr(model, "predict_proba"):
+            return np.asarray(model.predict_proba(X)[:, 1])
+        return np.asarray(model.predict(X), dtype=float)
