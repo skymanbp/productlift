@@ -16,7 +16,7 @@ RNG = np.random.default_rng(42)
 
 def _event(
     product_id, order_id, customer_id, price, ts, review_score, category,
-    *, photos=3, desc_len=200, name_len=40, weight=500, l=20, h=10, w=15,
+    *, photos=3, desc_len=200, name_len=40, weight=500, length=20, height=10, width=15,
     freight=15.0, late=0, delivery_days=10.0,
 ) -> dict:
     return {
@@ -32,9 +32,9 @@ def _event(
         "product_description_lenght": desc_len,
         "product_name_lenght": name_len,
         "product_weight_g": weight,
-        "product_length_cm": l,
-        "product_height_cm": h,
-        "product_width_cm": w,
+        "product_length_cm": length,
+        "product_height_cm": height,
+        "product_width_cm": width,
         "late_delivery": late,
         "delivery_days": delivery_days,
     }
