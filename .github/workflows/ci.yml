@@ -1,0 +1,29 @@
+# CI = the `make check` target (lint + typecheck + test), run on every push/PR.
+# Tests use in-memory fixtures only; anything needing the Olist download is marked
+# `data` and excluded here (the marker's documented contract in pyproject.toml).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Install (dev extras)
+        run: pip install -e ".[dev]"
+      - name: Lint (ruff)
+        run: ruff check .
+      - name: Typecheck (mypy)
+        run: mypy app evaluation experimentation causal observability
+      - name: Test (pytest, no-data markers only)
+        run: pytest -m "not data"

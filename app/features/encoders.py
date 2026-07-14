@@ -10,8 +10,8 @@ KEY CONCEPT — smoothing + train-only fit (+ why OOF matters)
     shrink toward the global mean (Bayesian smoothing), unseen levels get the
     global mean. Fit on train only. For the training fold, out-of-fold encoding
     keeps a row's own label out of its own feature; valid/test use the full-train
-    mapping. This module implements the fit/transform mapping; OOF is a stretch
-    goal in the test file.
+    mapping. SmoothedTargetEncoder is the fit/transform mapping; oof_target_encode
+    is the OOF version for the training design matrix.
 
 INTERVIEW ANGLE
     High-cardinality categorical -> smoothed target encoding, train-only fit, OOF
@@ -27,6 +27,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.model_selection import KFold
 
 
 class SmoothedTargetEncoder(BaseEstimator, TransformerMixin):
@@ -79,3 +80,40 @@ class SmoothedTargetEncoder(BaseEstimator, TransformerMixin):
         ColumnTransformer with set_output(transform="pandas") and downstream
         estimators see the same names at fit and predict time."""
         return np.asarray([f"{self.column}_target_encoded"], dtype=object)
+
+
+def oof_target_encode(
+    X: pd.DataFrame,
+    y: pd.Series,
+    column: str,
+    *,
+    smoothing: float = 20.0,
+    n_splits: int = 5,
+    seed: int = 42,
+) -> np.ndarray:
+    """Out-of-fold target encoding for the train fold.
+
+    fit-then-transform on train leaks: each row's own label sits in the category
+    mean that becomes its feature, so the model overfits the encoded column on the
+    train fold. Valid/test stay clean (their labels never entered the mapping),
+    which hides the leak in holdout metrics. OOF splits train into K folds and
+    encodes each row with an encoder fit on the other folds, so its own label
+    cannot reach its own feature (categories absent from those folds fall back to
+    the fold's prior, like an unseen level at serving). Deployment still uses the
+    full-train mapping; OOF only keeps the training design matrix honest.
+
+    Returns shape (n, 1), matching SmoothedTargetEncoder.transform.
+    """
+    target = np.asarray(y, dtype=float)
+    if len(target) != len(X):
+        raise ValueError(f"X has {len(X)} rows but y has {len(target)}")
+    if n_splits < 2:
+        raise ValueError(f"n_splits must be >= 2, got {n_splits}")
+
+    out = np.empty(len(X), dtype=float)
+    folds = KFold(n_splits=n_splits, shuffle=True, random_state=seed)
+    for fit_idx, encode_idx in folds.split(X):
+        enc = SmoothedTargetEncoder(column, smoothing=smoothing)
+        enc.fit(X.iloc[fit_idx], pd.Series(target[fit_idx]))
+        out[encode_idx] = enc.transform(X.iloc[encode_idx]).ravel()
+    return out.reshape(-1, 1)
