@@ -50,3 +50,6 @@ Thumbs.db
 !.vscode/extensions.json
 .claude/
 memory/
+# cc-enforcer index / cc-memory state: machine-local, never content
+.ce/
+.ccm/
