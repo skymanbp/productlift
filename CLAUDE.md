@@ -10,8 +10,10 @@ products on the real Olist dataset. Full curriculum: `LEARNING_PATH.md`.
 
 ## The single most important rule
 **This is a learning repo. Do NOT implement the exercises for the learner unless
-explicitly asked.** Exercise files raise `NotImplementedError` with `TODO(lillian)`
-markers and a `LEARNING GOAL` / `KEY CONCEPT` / `INTERVIEW ANGLE` / `TEST` docstring.
+explicitly asked.** Milestones M1–M8 are implemented (49/49 tests green), so the rule
+governs any newly added exercise. Exercise files are marked `⛏️ EXERCISE`, and their
+docstrings usually carry `LEARNING GOAL` / `KEY CONCEPT` / `INTERVIEW ANGLE` / `TEST`
+sections — a few modules omit one or two.
 When she's working an exercise, your job is to **coach**: explain the concept, point
 at the failing test, ask leading questions, review her attempt — not to hand over the
 solution. If she explicitly asks you to implement it, do so *and explain it*, since
@@ -21,8 +23,8 @@ The infrastructure (anything marked `FULLY BUILT` / `MOSTLY BUILT`) is fair game
 edit, debug, and extend normally.
 
 ## How to work here
-- **Test-first.** The test is the spec. Run `make test-exercise` to see open targets;
-  use the `/fix-issue` command's loop.
+- **Test-first.** The test is the spec. `make check` (ruff + mypy + pytest) is the
+  gate; use the `/fix-issue` command's loop on a new exercise or a regression.
 - **Follow the rules** in `.claude/rules/`: `ml-conventions.md` (leakage, validation,
   metrics), `code-style.md`, `testing.md`. These are non-negotiable and double as
   review criteria.
@@ -42,6 +44,6 @@ edit, debug, and extend normally.
   causal). Skills: `leakage-audit`, `eval-report`.
 
 ## Tooling
-Python 3.11+, pandas, scikit-learn, LightGBM/XGBoost, statsmodels, scipy, Optuna,
+Python 3.11+, pandas, scikit-learn, LightGBM, statsmodels, scipy, structlog,
 FastAPI. Lint/format with ruff; type-check with mypy. Personal overrides go in
 `CLAUDE.local.md` (gitignored).

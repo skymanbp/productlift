@@ -24,6 +24,12 @@ production distinction.
       │  scripts/evaluate.py         evaluation/* metrics, overall + by-segment
       ▼
  evaluation/eval_history/*.json      tracked over time
+
+ Batch runs off the same artifacts:
+      scripts/score.py               score every product → data/processed/
+                                     product_scores.csv + intervention_list.csv
+      scripts/monitor.py             observability/* PSI, training window vs latest
+                                     snapshot; exit 1 on breach = retraining trigger
 ```
 
 ## Online path (serving)
@@ -42,7 +48,8 @@ backs the container HEALTHCHECK.
   segments) the A/B test that validates a model-driven intervention in production.
 - **`causal/`** — estimate *causal* effects from observational data (propensity/IPW),
   per-unit uplift (who to treat), and exposure/position-bias correction.
-- **`observability/`** — PSI/KS drift monitoring on live data → retraining trigger.
+- **`observability/`** — PSI drift monitoring on live data → retraining trigger
+  (`scripts/monitor.py`, exit 1 on breach).
 
 ## Why this shape
 Each stage is a pure-ish function with a typed boundary, so it's testable in

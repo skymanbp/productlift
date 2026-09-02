@@ -1,12 +1,15 @@
 # Learning path
 
 A milestone-by-milestone curriculum. Each milestone = a set of exercise files to
-implement, a failing test that defines "done," and the interview skill it builds.
-Work top to bottom. Run `make test-exercise` any time to see your remaining targets.
+implement, a test that defines "done," and the interview skill it builds.
+Milestones 0–8 below are all complete — `NOTES.md` records a commit for M1–M8 (M0
+shipped no code), and `git show <sha>` is the answer key. Run `make check` any time
+to confirm the tree is still green.
 
-> **How an exercise works:** open the module — it has `LEARNING GOAL`, `KEY CONCEPT`,
-> `INTERVIEW ANGLE`, and a `TEST`. Read the test (it's the spec). Implement the
-> `NotImplementedError` bodies. Make the test green. Then say it out loud (interview
+> **How an exercise works:** open the module — it has a `TEST` section, and usually
+> `LEARNING GOAL` / `KEY CONCEPT` / `INTERVIEW ANGLE` too (a few omit one or two).
+> Read the test (it's the spec). Implement the
+> function bodies. Make the test green. Then say it out loud (interview
 > prep). The `/fix-issue` command runs this loop with you.
 
 ---
@@ -58,7 +61,7 @@ Work top to bottom. Run `make test-exercise` any time to see your remaining targ
 ## Milestone 7 — Observability
 - **Implement:** `observability/drift.py`
 - **Tests:** `tests/test_drift.py`
-- **Skill:** PSI/KS drift, retraining triggers.
+- **Skill:** PSI drift, retraining triggers.
 
 ## Milestone 8 — Production polish
 - **Do:** `make serve` then hit `/predict`; `docker compose up --build`; make

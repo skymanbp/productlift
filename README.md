@@ -10,8 +10,9 @@ business framing → feature engineering → modeling & validation → evaluatio
 experimentation → causal inference → production serving & monitoring.
 
 It is a **teaching repo**: the infrastructure is built, and the ML/stats logic is
-left as **graded exercises** — each with a failing test that defines "done." You
-make the tests pass; the code you write *is* your portfolio and your interview prep.
+carried as **graded exercises** — each with a test that defines "done." Milestones
+0–8 are complete (49/49 tests green); the exercises and their tests stay in place as
+reference material, and the code *is* your portfolio and your interview prep.
 
 > Built for a mentor + mentee to work through together. The running case study is
 > the Wayfair-style prompt *"identify and improve underperforming products."* See
@@ -29,8 +30,8 @@ pip install -e ".[dev]"          # or: make install
 # 2. Get the data (see data/README.md for the Kaggle token, or download manually)
 make data
 
-# 3. See your to-do list: every failing test is an exercise to implement
-make test-exercise
+# 3. Check the tree is green: ruff + mypy + the full test suite
+make check
 
 # 4. Work a milestone, then run the pipeline end to end
 make features     # build the modeling matrix   (after Milestones 1–2)
@@ -47,8 +48,8 @@ to `.claude/settings.json`.
 
 ## The curriculum
 
-Follow **[LEARNING_PATH.md](LEARNING_PATH.md)** — 8 milestones, each with files to
-implement, tests to pass, and the interview skill it builds. The four deep modules
+Follow **[LEARNING_PATH.md](LEARNING_PATH.md)** — 9 milestones (0–8), most with files
+to implement, tests to pass, and the interview skill it builds. The four deep modules
 (starred) are **feature engineering, modeling & validation, experimentation &
 stats, and causal inference**.
 
@@ -71,19 +72,21 @@ productlift/
 ├── app/
 │   ├── data/         load Olist, leakage-safe splits, the target definition
 │   ├── features/     product / behavioral / temporal features + target encoder
-│   ├── models/       baseline, LightGBM, calibration, tuning, registry
+│   ├── models/       baseline, LightGBM, calibration, registry
 │   ├── serving/      load a model and score (FastAPI predictor)
 │   ├── config.py     env + params.yaml (single source of truth)
 │   └── main.py       FastAPI scoring service
 ├── evaluation/       metrics (AUC/PR-AUC/Brier/ECE/NDCG) + offline harness
 ├── experimentation/  power analysis, A/B test analysis, segment effects
 ├── causal/           propensity/IPW, uplift meta-learners, exposure-bias
-├── observability/    PSI/KS drift detection + monitoring
-├── scripts/          download_data, build_features, train, evaluate, healthcheck
+├── observability/    PSI drift detection + monitoring
+├── scripts/          download_data, build_features, train, evaluate, score, monitor,
+│                     healthcheck
 ├── notebooks/        guided EDA
 ├── tests/            one exercise test per module (the specs)
 ├── docs/             problem-framing, data-dictionary, architecture, interview-prep
 ├── config/params.yaml
+├── .github/          CI workflow (ruff + mypy + pytest on push/PR)
 └── .claude/          AI-agent control center (commands, rules, skills, agents)
 ```
 
@@ -91,14 +94,14 @@ productlift/
 
 | Gap | How the repo addresses it |
 |---|---|
-| **Production-ready code** | sklearn Pipelines, model registry + cards, FastAPI serving, Docker, CI-ready tests, drift monitoring |
+| **Production-ready code** | sklearn Pipelines, model registry + cards, FastAPI serving, Docker, CI (GitHub Actions: ruff + mypy + pytest), drift monitoring |
 | **Data Science rigor** | leakage discipline, temporal validation, calibration, proper metrics under imbalance |
 | **Experimentation** | power analysis, A/B analysis with CIs + guardrails + multiple-testing |
 | **Causal thinking** | propensity/IPW, uplift, exposure/position-bias correction |
-| **Communication** | every module has an `INTERVIEW ANGLE`; `docs/interview-prep.md` rehearses the story |
+| **Communication** | most exercise modules carry an `INTERVIEW ANGLE`; `docs/interview-prep.md` rehearses the story |
 
 ## Tech choices (and why)
-- **LightGBM/XGBoost + scikit-learn** — GBDTs are the right default on tabular data.
+- **LightGBM + scikit-learn** — GBDTs are the right default on tabular data.
 - **Olist real data** — messy and real beats synthetic for portfolio credibility.
 - **statsmodels / scipy** — first-class stats for the experimentation module.
 - **FastAPI + Docker** — the standard, lightweight way to ship a model.

@@ -8,9 +8,10 @@ A teaching repo for an applied-ML job search — identify & improve underperform
 e-commerce products on the real Olist dataset. See `README.md` and `LEARNING_PATH.md`.
 
 ## Prime directive
-This is a **learning repo with graded exercises**. Files marked with `⛏️ EXERCISE`
-and `NotImplementedError` / `TODO(lillian)` are for the learner to implement. **Do
-not solve them unless explicitly asked** — coach instead: explain the concept, point
+This is a **learning repo with graded exercises**. Milestones M0–M8 are implemented
+(49/49 tests green) and the `⛏️ EXERCISE` headers stay in place as reference
+material. Any newly added exercise is for the learner to implement: **do
+not solve it unless explicitly asked** — coach instead: explain the concept, point
 to the failing test, review attempts. Infrastructure marked `FULLY BUILT` /
 `MOSTLY BUILT` can be edited normally.
 
@@ -25,9 +26,9 @@ to the failing test, review attempts. Infrastructure marked `FULLY BUILT` /
 - Details in `.claude/rules/`.
 
 ## Workflow
-Test-first. `make test-exercise` lists open targets. `make check` runs lint + types +
-tests. Build the pipeline with `make features → train → evaluate`; serve with
-`make serve`.
+Test-first. `make check` (ruff + mypy + pytest) is the gate; `make test-exercise`
+runs only the exercise-marked tests. Build the pipeline with
+`make features → train → evaluate`; serve with `make serve`.
 
 ## Layout
 `app/{data,features,models,serving}`, `evaluation/`, `experimentation/`, `causal/`,
