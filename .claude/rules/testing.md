@@ -3,11 +3,11 @@
 Testing ML code is its own skill, and a big part of the "production-ready" gap.
 
 ## Philosophy
-- **The test is the spec.** Each exercise ships a failing test that defines done.
+- **The test is the spec.** Each exercise ships a test that defines done.
 - Tests run on tiny **fixtures**, never the real Olist dataset — fast and
   deterministic. Tests that need the download are marked `@pytest.mark.data`.
-- Exercise tests are marked `@pytest.mark.exercise` → `make test-exercise` is the
-  daily to-do list.
+- Exercise tests are marked `@pytest.mark.exercise` → `make test-exercise` runs
+  each module's spec.
 
 ## What to test in ML code
 - **Leakage**: assert a transform fitted on train doesn't peek at valid/test

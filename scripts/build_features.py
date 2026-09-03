@@ -1,7 +1,7 @@
 """Build the modeling matrix from raw Olist. MOSTLY BUILT (orchestration).
 
 Ties the Milestone 1–2 data and feature work into one runnable pipeline: load raw
-→ base table → labels + temporal split → assembled features →
+→ base table → temporal split → features + label → joined matrix →
 data/processed/modeling_matrix.parquet. It runs end to end.
 
     python -m scripts.build_features
