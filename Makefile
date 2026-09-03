@@ -30,7 +30,7 @@ eda:  ## Launch JupyterLab for exploratory analysis
 test:  ## Run the full test suite (fast; uses fixtures, no real data)
 	pytest
 
-test-exercise:  ## Run only the exercise tests — your daily to-do list
+test-exercise:  ## Run only the exercise-marked tests (each module's spec)
 	pytest -m exercise
 
 lint:  ## Lint with ruff

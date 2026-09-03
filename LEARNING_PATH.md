@@ -36,6 +36,7 @@ to confirm the tree is still green.
 
 ## Milestone 3 — Modeling & validation  ⭐
 - **Implement:** `app/models/baseline.py` → `gbdt.py` → `calibrate.py` → (stretch) `tune.py`
+  (the stretch needs `pip install optuna`; it is not a project dependency)
 - **Tests:** `tests/test_models.py`
 - **Skill:** baseline-first discipline, GBDTs, class imbalance, calibration, Optuna.
 - **Run:** `make train` registers a model with a ModelCard.

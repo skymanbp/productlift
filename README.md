@@ -24,7 +24,8 @@ reference material, and the code *is* your portfolio and your interview prep.
 ## Quickstart
 
 ```bash
-# 1. Install (Python 3.11+)
+# 1. Install (Python 3.11+) and create your local .env
+cp .env.example .env             # PowerShell: Copy-Item .env.example .env
 pip install -e ".[dev]"          # or: make install
 
 # 2. Get the data (see data/README.md for the Kaggle token, or download manually)
@@ -40,7 +41,7 @@ make evaluate     # metrics + by-segment report  (after Milestone 4)
 
 # 5. Ship it
 make serve        # FastAPI scoring service at http://localhost:8000/docs
-docker compose up --build
+docker compose up --build        # reads the .env from step 1
 ```
 
 Activate the AI-agent guardrails (optional): copy `.claude/settings.json.example`

@@ -16,12 +16,8 @@ dependencies = [
     # --- Modeling ---
     "scikit-learn>=1.4",
     "lightgbm>=4.3",
-    "xgboost>=2.0",
-    "optuna>=3.6",            # hyperparameter tuning
     # --- Statistics / experimentation ---
     "statsmodels>=0.14",      # power analysis, GLMs, proportion tests
-    # --- Interpretability ---
-    "shap>=0.45",
     # --- Serving ---
     "fastapi>=0.110",
     "uvicorn[standard]>=0.29",
@@ -73,7 +69,7 @@ ignore_missing_imports = true   # ML libs ship incomplete stubs; relax for now
 testpaths = ["tests"]
 addopts = "-v --strict-markers"
 markers = [
-    "exercise: fails until the corresponding exercise is implemented",
+    "exercise: covers an exercise module; the test is that module's spec",
     "slow: trains a model or runs many iterations",
     "data: requires the downloaded Olist dataset (skipped in CI by default)",
 ]

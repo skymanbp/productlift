@@ -1,9 +1,8 @@
 """Build the modeling matrix from raw Olist. MOSTLY BUILT (orchestration).
 
-Ties together the data + feature exercises. It will run end-to-end once Milestones
-1–2 are implemented (load is built; labels/splits/features are yours). Until then it
-raises NotImplementedError from whichever exercise isn't done — that's your TODO list
-materializing as a runnable pipeline.
+Ties the Milestone 1–2 data and feature work into one runnable pipeline: load raw
+→ base table → labels + temporal split → assembled features →
+data/processed/modeling_matrix.parquet. It runs end to end.
 
     python -m scripts.build_features
 """

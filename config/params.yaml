@@ -35,7 +35,7 @@ features:
 
 # --- Model -----------------------------------------------------------------
 model:
-  type: lightgbm                # baseline | lightgbm | xgboost
+  type: lightgbm                # baseline | lightgbm
   handle_imbalance: scale_pos_weight   # none | scale_pos_weight | class_weight
   calibrate: true               # fit a calibration layer on a held-out calib fold
   holdout:                      # seeded product-level split; remainder is train
