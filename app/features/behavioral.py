@@ -9,7 +9,9 @@ LEARNING GOAL
 KEY CONCEPT — aggregation + the cold-start tradeoff
     Per product, over the feature window:
       - n_orders, n_unique_customers (demand/popularity)
-      - avg/median price actually sold at, avg freight_value
+      - avg freight_value  (the price level itself is product.py's avg_unit_price —
+        same groupby on the same window, so a second copy here would be one number
+        under two names)
       - avg review_score so far, share of bad reviews (<=2)   [satisfaction]
       - late_delivery rate, avg delivery_days                 [fulfillment]
     More history = more reliable aggregates, but new products have little. Note
@@ -40,12 +42,16 @@ def behavioral_features(feature_events: pd.DataFrame) -> pd.DataFrame:
     NaN for both review aggregates — deliberately not filled here: missingness is
     itself signal, and any imputation must be fit on train only, which is the model
     pipeline's job (M3), not the feature builder's.
+
+    No average sale price here: `product_features` already computes it as
+    `avg_unit_price` from the same `price` column, grouped by product over the same
+    feature window, and derives `log_avg_unit_price` / `price_vs_category_median`
+    from it. Emitting it twice put one number in the matrix under two names.
     """
     required = {
         "product_id",
         "order_id",
         "customer_id",
-        "price",
         "freight_value",
         "review_score",
         "late_delivery",
@@ -58,7 +64,6 @@ def behavioral_features(feature_events: pd.DataFrame) -> pd.DataFrame:
     return feature_events.groupby("product_id", as_index=False).agg(
         n_orders=("order_id", "size"),
         n_unique_customers=("customer_id", "nunique"),
-        avg_price=("price", "mean"),
         avg_freight=("freight_value", "mean"),
         avg_review_score=("review_score", "mean"),
         # mean() of an empty (all-NaN-dropped) slice is NaN, not an error.

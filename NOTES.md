@@ -19,10 +19,10 @@
 | M6 | 因果推断 ⭐ | ✅ 2026-07-07 | `a8e870b` | 5 绿 |
 | M7 | 漂移监控 | ✅ 2026-07-09 | `05adb41` | 2 绿 |
 | M8 | 上线打磨 | ✅ 2026-07-10 | `737159f` | 2 绿(新增回归) |
-| 课外 | CI + 批量打分 + 监控闭环 + OOF 编码 | ✅ 2026-07-14 | 本批 | 10 绿(新增) |
+| 课外 | CI + 批量打分 + 监控闭环 + OOF 编码(**已建成、未接入正式管道**) | ✅ 2026-07-14 | 本批 | 10 绿(新增) |
 
-测试进度:重启基线 1 绿 → **49/49 全绿**(37 个练习 + M8 的 2 个 serving 回归 +
-课外改进的 10 个新测试)。
+测试进度:重启基线 1 绿 → ~~49/49~~ **50/50 全绿**(37 个练习 + M8 的 2 个 serving
+回归 + 课外改进的 10 个新测试 + 2026-09-03 的 1 个均价去重回归)。
 远端:全部里程碑已入库并推送到 origin/main(历史按里程碑重整过,故 SHA 与旧记录不同)。
 
 ---
@@ -89,10 +89,11 @@ outcome 窗(2018-03-31 后 180 天)标出 **1,442 个商品,26.6% 差生**。
 
 **做了什么**:`product / behavioral / temporal / encoders` 四个构建器 + `assemble` 集成。
 
-**特征清单**(26 个特征,全部"截至预测日可知"):
+**特征清单**(~~26~~ **25** 个特征,全部"截至预测日可知";2026-09-03 去掉与
+`avg_unit_price` 重复的 `avg_price`,见"下一步"第 2 条):
 - **内容/静态**:照片数、描述长度、名称长度、重量、体积、密度、log 变换、
-  均价、**品类相对价格**(冷启动商品也有这些)
-- **行为**:订单数、客户数、均价、运费、评分、差评率、迟到率、配送天数
+  均价(`avg_unit_price`)、**品类相对价格**(冷启动商品也有这些)
+- **行为**:订单数、客户数、~~均价~~、运费、评分、差评率、迟到率、配送天数
 - **时间**:上架时长、距最近一单天数、近 7/30/90 天订单数、30 天动量趋势
 
 **关键设计决定**:
@@ -106,7 +107,7 @@ outcome 窗(2018-03-31 后 180 天)标出 **1,442 个商品,26.6% 差生**。
    (outcome 窗的 revenue/n_orders 进特征 = 把答案抄进考卷);inner join
    ("没被评判"≠"健康",1,442 个有标签商品中 558 个无特征窗历史,排除)
 
-**产出**:`modeling_matrix.parquet` = **884 商品 × 28 列,24.0% 正类**;
+**产出**:`modeling_matrix.parquet` = **884 商品 × ~~28~~ 27 列,24.0% 正类**;
 唯一 NaN 列是 trend_30d(353 个,by design)。
 
 ---
@@ -121,12 +122,18 @@ outcome 窗(2018-03-31 后 180 天)标出 **1,442 个商品,26.6% 差生**。
 | | valid (133) | test (177,只碰一次) |
 |---|---|---|
 | 瞎猜基准(=正类占比) | 0.188 | 0.243 |
-| LogReg baseline | 0.624 | **0.740** |
+| LogReg baseline | ~~0.624~~ **0.628** | ~~0.740~~ **0.745** |
 | GBDT + 校准 | 0.656 | **0.748** |
 
-**诚实解读**:baseline 远超瞎猜(特征有真信号);GBDT 只比 baseline 高 0.008 ——
-**884 行小数据上复杂度尚未被 lift 证明**。不做 baseline 就会拿 0.748 吹"模型很好",
-不知道 0.740 用可解释的线性模型就能拿到。这就是 baseline-first 纪律的价值。
+baseline 两个数字 2026-09-03 去掉重复列 `avg_price` 后重训所得(`python -m
+scripts.train`):共线的重复列会把 LogReg 的系数劈成两半,去掉它 baseline 反而
+略升;GBDT 侧 valid 0.655994 / test 0.747610 **去重前后逐位不变**,M4 的评估
+JSON 也逐位相同——树模型对这种完全重复的列本来就不敏感。
+
+**诚实解读**:baseline 远超瞎猜(特征有真信号);GBDT 只比 baseline 高
+~~0.008~~ **0.002** ——**884 行小数据上复杂度尚未被 lift 证明**(去重后差距
+更小,结论更硬)。不做 baseline 就会拿 0.748 吹"模型很好",不知道 ~~0.740~~
+**0.745** 用可解释的线性模型就能拿到。这就是 baseline-first 纪律的价值。
 
 **核心思想**:
 - **四折切分** train/valid/calib/test(441/133/133/177):早停用 valid,
@@ -367,7 +374,8 @@ pytest 39/39** —— `make check` 的定义(lint+typecheck+test)完整达标。
 32,216 产品),逐特征 PSI 对比,**退出码契约**(0=平稳,1=越阈)使它可挂 cron
 当再训练触发器。真实数据结果:tenure_days PSI 0.231、days_since_last 0.149
 (中度——数据窗右移 5 个月,店龄和 recency 整体漂移,方向完全符合预期),
-其余 23 个特征全部 <0.06 稳定;`--fail-on significant` 退出 0,
+其余 ~~23~~ **22** 个特征全部 <0.06 稳定(2026-09-03 去掉 `avg_price` 后逐特征
+表少一行,最大值仍是 avg_delivery_days 0.058);`--fail-on significant` 退出 0,
 `--fail-on moderate` 退出 1,两个分支都实测过。
 
 **过程中抓到 PSI 的一个静默谎言**:含 NaN 的特征(trend_30d 缺失率 82%!)喂进
@@ -426,19 +434,35 @@ train 折上 fit-then-transform 的目标编码,每行自己的标签就藏在�
 | "永远绿"的回归测试 | 第一版回归测试没修复也过(sklearn 静默强转 object→float,只有 LightGBM 拒收) | 回归测试必做**反向验证**:stash 修复、确认变红、再恢复 |
 | PSI 遇 NaN 恒报"稳定" | `np.quantile` 含 NaN → 所有分箱边界 NaN → 两侧质量全进第一个箱 → PSI≡0,监控变成永远说"没事"的哑炮 | PSI 层 fail-loud 拒收 NaN;drift_report 层拆两路信号:观测值 PSI + 缺失率(课外改进节) |
 | naive 目标编码污染 train 折 | fit-then-transform(train) 时每行自己的标签在自己的特征里;holdout 干净所以指标看不出来 | OOF 编码 + 单行标签探针测试证明机制(课外改进节) |
+| 一个量两个名字 | 两个构建器对同一份 feature_events 做同一个 groupby-mean,`avg_price` 与 `avg_unit_price` 逐位相同;两列各自看都像正经特征,漂移表里 PSI 一模一样才露馅 | 删掉没有下游的那一个,并用回归测试钉住"均价只准出现一次"(下一步第 2 条) |
 
 ---
 
 ## 下一步
 
-课程 8 关 + 课外 4 项改进全部完成,49/49 全绿。M7+M8+课外改进已入库(历史按里程碑重整过)。
-(建议拆 3 个:M7 drift、M8 serving 修复+验收、课外改进一批)。
+课程 8 关 + 课外 4 项改进全部完成,~~49/49~~ 50/50 全绿。M7+M8+课外改进已入库
+(历史按里程碑重整过)。
+~~(建议拆 3 个:M7 drift、M8 serving 修复+验收、课外改进一批)。~~
+**已按此拆完**:`05adb41` M7 漂移监控、`737159f` M8 serving 修复+回归、
+`192ea14` 课外改进一批。
 
-剩余挂账(用户知情的暂缓项):
-1. **train.py 接入 OOF 编码**:`oof_target_encode` 已建成并验证,但正式训练
-   管道仍用 naive 编码——受控实验显示提升在噪声内,接不接是个决策而非 bug;
-   接入需要动 ColumnTransformer 的装配方式,值得单独一次实验(/new-experiment)。
-2. **avg_price / avg_unit_price 语义去重**(两列数值几乎相同,PSI 也证实:
-   两者漂移值逐位一致 0.000238)。
+剩余挂账:
+1. ~~**train.py 接入 OOF 编码**~~ → **定案不接入**(2026-09-03)。正式训练管道
+   保持 `SmoothedTargetEncoder`(`scripts/train.py:98` 的 ColumnTransformer 里
+   fit-on-train),`oof_target_encode` 继续以已建成、有测试(`tests/test_encoders.py`
+   的单行标签探针)的形式留在 `app/features/encoders.py`,随时可调用。
+   理由:这是教学仓,两份编码器并存本身就是教材——"naive 在 train 折泄漏、
+   OOF 修的是机制不是分数"这条对照,合成一份就没了;而受控实验的提升落在
+   KFold seed 噪声内(test 0.746–0.777),换不来可测收益却要改管道装配方式。
+2. ~~**avg_price / avg_unit_price 语义去重**~~ → **已去重**(2026-09-03)。
+   两列不是"几乎相同"而是同一个量:`behavioral_features` 与 `product_features`
+   拿的是同一份 `feature_events`、同一个 `groupby("product_id")`、同一列 `price`
+   的 `mean`,在 884 行建模矩阵上 `avg_price.equals(avg_unit_price)` 为 True、
+   max |diff| = 0.0、0 行不一致(PSI 逐位一致 0.000238 只是这件事的一个侧影)。
+   删掉 `behavioral_features` 的 `avg_price`,价格水平统一由 `product_features`
+   的 `avg_unit_price` 提供(它还派生 `log_avg_unit_price` 和
+   `price_vs_category_median`,是有下游的那一个)。矩阵 28 → 27 列、特征 26 → 25;
+   `tests/test_build.py::test_average_sale_price_appears_once` 钉住"均价只准出现
+   一次",并做过反向验证(把 `avg_price` 加回去立刻变红)。
 3. **Optuna 调参**:维持"不做"的诚实评估——884 行上大概率白费,
    "为什么不调参"本身是更好的面试答案。
