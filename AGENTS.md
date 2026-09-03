@@ -9,7 +9,7 @@ e-commerce products on the real Olist dataset. See `README.md` and `LEARNING_PAT
 
 ## Prime directive
 This is a **learning repo with graded exercises**. Milestones M0–M8 are implemented
-(49/49 tests green) and the `⛏️ EXERCISE` headers stay in place as reference
+(50/50 tests green) and the `⛏️ EXERCISE` headers stay in place as reference
 material. Any newly added exercise is for the learner to implement: **do
 not solve it unless explicitly asked** — coach instead: explain the concept, point
 to the failing test, review attempts. Infrastructure marked `FULLY BUILT` /

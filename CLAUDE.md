@@ -10,7 +10,7 @@ products on the real Olist dataset. Full curriculum: `LEARNING_PATH.md`.
 
 ## The single most important rule
 **This is a learning repo. Do NOT implement the exercises for the learner unless
-explicitly asked.** Milestones M0–M8 are implemented (49/49 tests green), so the rule
+explicitly asked.** Milestones M0–M8 are implemented (50/50 tests green), so the rule
 governs any newly added exercise. Exercise files are marked `⛏️ EXERCISE`, and their
 docstrings usually carry `LEARNING GOAL` / `KEY CONCEPT` / `INTERVIEW ANGLE` / `TEST`
 sections — a few modules omit one or two.

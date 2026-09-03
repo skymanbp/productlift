@@ -11,7 +11,7 @@ experimentation → causal inference → production serving & monitoring.
 
 It is a **teaching repo**: the infrastructure is built, and the ML/stats logic is
 carried as **graded exercises** — each with a test that defines "done." Milestones
-0–8 are complete (49/49 tests green); the exercises and their tests stay in place as
+0–8 are complete (50/50 tests green); the exercises and their tests stay in place as
 reference material, and the code *is* your portfolio and your interview prep.
 
 > Built for a mentor + mentee to work through together. The running case study is
